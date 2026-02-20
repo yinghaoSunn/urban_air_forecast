@@ -52,15 +52,13 @@ team_info <- list(
 # Take the latest time in the targets data as the end of the window 
 # to avoid an empty table due to data not being updated
 window_days <- 60 # Only 60 days for easy visualization
-end_dt <- max(targets$datetime, na.rm = TRUE)
-start_dt <- end_dt - lubridate::days(window_days)
 
-targets <- download_targets(start_dt, end_dt)
+targets <- download_targets(window_days)
 site_meta <- download_site_meta()
-met <- download_met_drivers(site_meta, past_days = 60)
+met <- download_met_drivers(site_meta, past_days = window_days)
 
 # visualization - target time series
-viz_target_time_series(targets, window_days, start_dt, end_dt)
+viz_target_time_series(targets, window_days)
 
 # visualization - drivers time series
 viz_drivers_time_series(targets)

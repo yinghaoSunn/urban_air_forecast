@@ -1,18 +1,31 @@
+##' Calculate start/end date
+##' @return vector with start date and end date
+get_start_end_date <- function(targets, window_days) {
+  end_dt <- max(targets$datetime, na.rm = TRUE)
+  start_dt <- end_dt - lubridate::days(window_days)
+  
+  dt_list <- list("start" = start_dt, "end" = end_dt)
+  
+  return(dt_list)
+}
+
 ##' Download Targets
 ##' @return data.frame in long format with days as rows, and time, site_id, variable, and observed as columns
-download_targets <- function(start_dt, end_dt){
+download_targets <- function(window_days){
   url <- Sys.getenv(
     "URBAN_TARGETS_URL",
     "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/targets/project_id=bu4cast/urban-targets.csv"
   )
   targets <- readr::read_csv(url, col_types = cols())
   
+  dts <- get_start_end_date(targets, window_days)
+  
   # Daily targets only - only includes variables PM2.5 and PM10
   targets_recent <- targets %>%
     subset(select = -c(project_id)) %>%
     filter(duration == "P1D") %>%
     mutate(datetime = as.POSIXct(datetime, tz = "GMT")) %>%
-    filter(datetime >= start_dt, datetime <= end_dt)
+    filter(datetime >= dts$start, datetime <= dts$end)
   
   return(targets_recent)
 }
@@ -76,13 +89,15 @@ download_met_drivers <- function(site_meta, past_days) {
 
 ##' Visualize target time series data
 ##' @return visualizations in .png
-viz_target_time_series <- function(targets, window_days, start_dt, end_dt) {
+viz_target_time_series <- function(targets, window_days) {
+  dts <- get_start_end_date(targets, window_days)
+  
   p_targets <- targets %>%
     ggplot(aes(x = datetime, y = observation, group = site_id)) +
     geom_line(alpha = 0.6) +
     facet_grid(variable ~ site_id, scales = "free_y") +
     labs(title = sprintf("Urban air quality targets (last %d days)", window_days),
-         subtitle = paste0("Data through: ", as.Date(end_dt), " | Generated: ", format(Sys.time(), tz="GMT")),
+         subtitle = paste0("Data through: ", as.Date(dts$end), " | Generated: ", format(Sys.time(), tz="GMT")),
          x = "Datetime (GMT)", y = "Observation")
   
   ggsave(
