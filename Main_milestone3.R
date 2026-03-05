@@ -63,9 +63,10 @@ viz_target_time_series(targets, window_days)
 # visualization - drivers time series
 viz_drivers_time_series(targets)
 
-#visualization - avergae time series
-viz_avg_drivers_time_series
+#visualization - average time series
+viz_avg_drivers_time_series(met)
 
 #visualization - precipitation time series
-viz_cumulative_precip
+viz_cumulative_precip(met)
+
 message("Milestone 3 plots saved to outputs/.")
