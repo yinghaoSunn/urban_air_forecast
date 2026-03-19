@@ -14,7 +14,7 @@ get_start_end_date <- function(targets, window_days) {
 download_targets <- function(window_days) {
   url <- Sys.getenv(
     "URBAN_TARGETS_URL",
-    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/targets/project_id=bu4cast/urban-targets.csv"
+    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/project_id=bu4cast/targets/urban-targets.csv"
   )
   targets <- readr::read_csv(url, col_types = cols())
   
@@ -35,7 +35,7 @@ download_targets <- function(window_days) {
 download_site_meta <- function(){
   url <- Sys.getenv(
     "URBAN_SITES_URL",
-    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/targets/project_id=bu4cast/urban-targets-sites.csv"
+    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/project_id=bu4cast/targets/urban-targets-sites.csv"
   )
   readr::read_csv(url, col_types = cols())
 }
