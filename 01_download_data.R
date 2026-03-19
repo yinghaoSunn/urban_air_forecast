@@ -14,7 +14,7 @@ get_start_end_date <- function(targets, window_days) {
 download_targets <- function(window_days) {
   url <- Sys.getenv(
     "URBAN_TARGETS_URL",
-    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/targets/project_id=bu4cast/urban-targets.csv"
+    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/project_id=bu4cast/targets/urban-targets.csv"
   )
   targets <- readr::read_csv(url, col_types = cols())
   
@@ -32,12 +32,22 @@ download_targets <- function(window_days) {
 
 ##' Download Site metadata
 ##' @return metadata dataframe
-download_site_meta <- function(){
-  url <- Sys.getenv(
+download_site_meta <- function() {
+  local_path <- Sys.getenv("URBAN_SITES_LOCAL", "data/urban-targets-sites.csv")
+  remote_url <- Sys.getenv(
     "URBAN_SITES_URL",
-    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/targets/project_id=bu4cast/urban-targets-sites.csv"
+    "https://minio-s3.apps.shift.nerc.mghpcc.org/bu4cast-ci-read/challenges/project_id=bu4cast/metadata/urban-targets-sites.csv"
   )
-  readr::read_csv(url, col_types = cols())
+
+  source_path <- if (file.exists(local_path)) local_path else remote_url
+  message("Reading site metadata from: ", source_path)
+
+  readr::read_csv(source_path, col_types = cols()) %>%
+    dplyr::rename(
+      site_id = field_site_id,
+      site_lat = latitude,
+      site_long = longitude
+    )
 }
 
 ##' Download met drivers

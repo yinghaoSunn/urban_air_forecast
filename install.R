@@ -1,3 +1,8 @@
-install.packages("rMR")
-install.packages("decor")
-
+install.packages(c(
+  "rMR",
+  "decor",
+  "nimble",
+  "coda",
+  "httr",
+  "jsonlite"
+))

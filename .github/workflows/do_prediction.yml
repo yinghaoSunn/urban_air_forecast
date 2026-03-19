@@ -4,24 +4,32 @@ on:
 #  - cron: "0 20 * * *"
 #  push:
 
-
 jobs:
   build:
     runs-on: ubuntu-22.04
     container:
       image: eco4cast/rocker-neon4cast
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: install R packages
-        run: R -e 'source("install.R")' 
-# Point to the right path, run the right Rscript command
-      - name: Run automatic prediction file
-        run: Rscript Main_milestone3.R
-      - name: Upload milestone3 plots
+
+      - name: Install system libraries
+        run: |
+          apt-get update
+          apt-get install -y libglpk40 libglpk-dev
+
+      - name: Install R packages
+        run: R -e 'source("install.R")'
+
+      - name: Run milestone 5 historical model fit
+        run: Rscript Main_milestone5.R
+
+      - name: Upload milestone 5 outputs
         uses: actions/upload-artifact@v4
         with:
-          name: milestone3-plots
-          path: outputs/*.png
+          name: milestone5-outputs
+          path: outputs/milestone5/**
+          if-no-files-found: error
