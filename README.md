@@ -61,10 +61,10 @@ Updates on milestones and the scripts to run will be written here.
 **Milestone 3**: Data download and visualization\
 --completed--
 
-**Milestone 4**: Dynamic Models
+**Milestone 4**: Dynamic Models\
 --completed--
 
-**Milestone 5**: Calibration
+**Milestone 5**: Calibration\
 Run Main_milestone5.R
 
 ## Contacts
