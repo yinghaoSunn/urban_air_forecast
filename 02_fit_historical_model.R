@@ -103,32 +103,30 @@ if (nrow(dat) < 40) {
 N <- nrow(dat)
 
 # 4. Bayesian state-space model -----------------------------------
-# latent state x[t] is log(PM2.5 + 1)
 
+# latent state x[t] is log(PM2.5 + 1)
 code <- nimbleCode({
-  alpha ~ dnorm(0, sd = 3)
-  phi   ~ dunif(-0.95, 0.95)
-  
+  alpha_0     ~ dnorm(0, sd = 3)
+  alpha_1     ~ dnorm(0, sd = 1)
   beta_temp   ~ dnorm(0, sd = 1)
   beta_wind   ~ dnorm(0, sd = 1)
   beta_precip ~ dnorm(0, sd = 1)
   
-  # Only estimate process noise for now
-  sigma_proc ~ dunif(0, 3)
+  sigma_proc ~ dgamma(2, 2)
+  sigma_obs  ~ dgamma(2, 2)
   
-  # Fix observation noise to a small constant
   x[1] ~ dnorm(y0, sd = 1)
-  y[1] ~ dnorm(x[1], sd = 0.10)
+  y[1] ~ dnorm(x[1], sd = sigma_obs)
   
   for (t in 2:N) {
-    mu_x[t] <- alpha +
-      phi * x[t - 1] +
-      beta_temp   * temp_z[t] +
-      beta_wind   * wind_z[t] +
+    mu_x[t] <- alpha_0 +
+      alpha_1 * x[t - 1] +
+      beta_temp * temp_z[t] +
+      beta_wind * wind_z[t] +
       beta_precip * precip_z[t]
     
     x[t] ~ dnorm(mu_x[t], sd = sigma_proc)
-    y[t] ~ dnorm(x[t], sd = 0.10)
+    y[t] ~ dnorm(x[t], sd = sigma_obs)
   }
 })
 
@@ -146,12 +144,13 @@ data_list <- list(
 
 inits <- function() {
   list(
-    alpha = 0,
-    phi = 0.5,
+    alpha_0 = 0,
+    alpha_1 = 0,
     beta_temp = 0,
     beta_wind = 0,
     beta_precip = 0,
-    sigma_proc = 0.5,
+    sigma_proc = 1,
+    sigma_obs = 1,
     x = dat$y + rnorm(N, 0, 0.05)
   )
 }
@@ -168,10 +167,9 @@ cmodel <- compileNimble(model)
 conf <- configureMCMC(
   model,
   monitors = c(
-    "alpha", "phi",
+    "alpha_0", "alpha_1",
     "beta_temp", "beta_wind", "beta_precip",
-    "sigma_proc",
-    "x"
+    "sigma_proc", "sigma_obs", "x"
   )
 )
 
@@ -180,8 +178,8 @@ cmcmc <- compileNimble(mcmc, project = model)
 
 samples <- runMCMC(
   cmcmc,
-  niter = 30000,
-  nburnin = 10000,
+  niter = 25000,
+  nburnin = 5000,
   thin = 10,
   nchains = 4,
   samplesAsCodaMCMC = TRUE,
@@ -201,9 +199,9 @@ write_csv(dat, paste0(prefix, "_fit_data.csv"))
 mat <- do.call(rbind, lapply(samples, as.matrix))
 
 monitor_pars <- c(
-  "alpha", "phi",
+  "alpha_0", "alpha_1",
   "beta_temp", "beta_wind", "beta_precip",
-  "sigma_obs", "sigma_proc"
+  "sigma_proc", "sigma_obs"
 )
 
 param_summary <- tibble(
