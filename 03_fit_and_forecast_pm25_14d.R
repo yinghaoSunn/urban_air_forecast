@@ -466,3 +466,32 @@ readr::write_csv(summ_all, paste0(combined_base, "_forecast_summary_ALLSITES.csv
 message("Done. Forecast rows: ", nrow(forecast_all))
 message("Saved under: ", OUT_DIR)
 
+summ_all |>
+  mutate(Site = paste0("Site: ", site_id)) |>
+  ggplot(aes(datetime)) +
+  geom_ribbon(aes(ymin=`p2.5`, ymax=`p97.5`, fill = "95% CI")) +
+  geom_point(aes(y=`p50`, color="PM2.5", shape = "PM2.5"), size = 4) +
+  theme_bw(base_size = 16) +
+  #coord_cartesian(xlim = c(as.Date("2018-01-01"), as.Date("2019-01-01"))) +
+  scale_color_manual(
+    name = NULL,
+    values = c(
+      "PM2.5" = "blue"
+    )
+  ) +
+  scale_shape_manual(
+    name = NULL,
+    values = c(
+      "PM2.5" = "o"
+    )
+  ) +
+  scale_fill_manual(
+    name = NULL,
+    values = c(
+      "95% CI" = "lightblue"
+    )
+  ) +
+  ylab(bquote("PM2.5 Concentration" ~ (mu * g %.% m^-3))) +
+  xlab("Date") +
+  facet_wrap(~Site) +
+  ggtitle("Forecast PM2.5 Concentration")
