@@ -33,3 +33,10 @@ jobs:
           name: milestone5-outputs
           path: outputs/milestone5/**
           if-no-files-found: error
+
+      - name: Upload milestone 6 outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone6-outputs
+          path: outputs/milestone6_like/**
+          if-no-files-found: error
