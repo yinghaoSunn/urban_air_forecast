@@ -1,8 +1,8 @@
 on:
   workflow_dispatch:
-#  schedule:
-#  - cron: "0 20 * * *"
-#  push:
+  schedule:
+  - cron: "0 20 * * *"
+  push:
 
 jobs:
   build:
@@ -33,6 +33,9 @@ jobs:
           name: milestone5-outputs
           path: outputs/milestone5/**
           if-no-files-found: error
+
+      - name: Run milestone 6 fit and forecast
+        run: Rscript Main_milestone6.R
 
       - name: Upload milestone 6 outputs
         uses: actions/upload-artifact@v4
