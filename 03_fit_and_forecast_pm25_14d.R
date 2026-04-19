@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
   library(jsonlite)
   library(nimble)
   library(coda)
+  library(arrow)
 })
 
 # config
@@ -61,32 +62,56 @@ download_met_history_one_site <- function(site_meta_one, start_date, end_date) {
 }
 
 download_met_forecast_one_site <- function(site_meta_one, forecast_days) {
-  lat <- site_meta_one$site_lat[1]
-  lon <- site_meta_one$site_long[1]
   site <- site_meta_one$site_id[1]
+
+  noaa_forecast_endpoint <- "https://minio-s3.apps.shift.nerc.mghpcc.org"
+  noaa_forecast_path <- "bu4cast-ci-read/challenges/project_id=bu4cast/drivers/stage1"
   
-  resp <- httr::GET(
-    "https://api.open-meteo.com/v1/forecast",
-    query = list(
-      latitude = lat,
-      longitude = lon,
-      daily = "temperature_2m_mean,precipitation_sum,windspeed_10m_mean",
-      forecast_days = forecast_days,
-      past_days = 0,
-      timezone = "GMT"
+  # Today's forecast is probably not ready
+  # Yesterday's forecast might not be ready
+  # Go back to ereyesterday to be safe
+  # (ereyesterday is an actual word that means the day before yesterday)
+  today_date <- Sys.Date() |> with_tz("UTC") |> floor_date(unit = "days")
+  anchor_date <- today_date - duration(2, "days")
+  # Arrow is not clever about date handling; simplify
+  anchor_date <- as.character(anchor_date)
+  # extend forecast horizon by 2 because our anchor date is ereyesterday
+  forecast_horizon <- make_difftime(day = forecast_days + 2)
+
+  stage1_bucket <- arrow::s3_bucket(
+    noaa_forecast_path,
+    endpoint_override = noaa_forecast_endpoint,
+    access_key = Sys.getenv("OSN_KEY"),
+    secret_key = Sys.getenv("OSN_SECRET")
+  )
+  
+  stage1_forecast <- arrow::open_dataset(stage1_bucket) |>
+    filter(reference_datetime == anchor_date) |>
+    filter(site_id == site) |>
+    # Temperature, precipitation, and horizontan / vertical wind
+    filter(variable %in% c("TMP", "APCP", "VGRD", "UGRD")) |>
+    filter(horizon <= forecast_horizon) |>
+    # The rest of the filtering can't be done by Arrow :-(
+    collect()
+  
+  if (nrow(stage1_forecast) == 0) {
+    stop(paste0("No forecast available for site ", site, " starting on ", anchor_date))
+  }
+  
+  stage1_forecast_cleaned <- stage1_forecast |>
+    filter(datetime >= today_date) |>
+    pivot_wider(names_from = "variable", values_from = "prediction") |>
+    # One forecast per site per day
+    mutate(date = floor_date(datetime, unit = "days")) |>
+    group_by(site_id, date) |>
+    summarize(
+      temperature_2m_mean = mean(TMP, na.rm = TRUE),
+      precipitation_sum = sum(APCP, na.rm = TRUE),
+      windspeed_10m_mean = mean(sqrt(UGRD^2 + VGRD^2), na.rm = TRUE),
+      .groups = "drop"
     )
-  )
-  httr::stop_for_status(resp)
   
-  js <- jsonlite::fromJSON(httr::content(resp, as = "text", encoding = "UTF-8"))
-  
-  tibble(
-    site_id = site,
-    date = as.Date(js$daily$time),
-    temperature_2m_mean = js$daily$temperature_2m_mean,
-    precipitation_sum = js$daily$precipitation_sum,
-    windspeed_10m_mean = js$daily$windspeed_10m_mean
-  )
+  return(stage1_forecast_cleaned)
 }
 
 # helper: pick sites
