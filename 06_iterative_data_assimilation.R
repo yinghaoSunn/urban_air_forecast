@@ -12,9 +12,7 @@ suppressPackageStartupMessages({
 # config
 if (file.exists("01_download_data.R")) {
   source("01_download_data.R")
-} else if (file.exists("01_download_data (3).R")) {
-  source("01_download_data (3).R")
-} else {
+ else {
   stop("Cannot find 01_download_data.R")
 }
 
